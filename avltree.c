@@ -1,3 +1,13 @@
+/*
+	The idea is a binary search tree data structure with an easy to use API
+	Will be an int since it is compare problems otherwise..!!
+
+	ADD HEIGHT IN EACH NODE?
+	IS LEAF?
+	BULK OPERATIONS - That is: add tree to tree and so on... split and joint but that is future
+	THERE ARE MORE WAYS TO DELETE THAN CURRENTLY IMPLEMENTED!
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -6,79 +16,90 @@
 
 
 
-typedef struct n
+typedef struct tree_node_struct
 {
 	int value;
-	struct n * left_child;
-	struct n * right_child;
+	struct tree_node_struct * left_child;
+	struct tree_node_struct * right_child;
 } tree_node;
 
-typedef struct r
+typedef struct avl_tree_struct
 {
 	int size;
 	tree_node * first_node;
-} tree;
+} avl_tree;
 
-/**** function prototypes begin ****/
+/**** PROTOTYPES BEGIN ****/
 
-	int log_2(int x);
+	/**** BASIC OPERATIONS BEGIN ****/
+		static tree_node * add_node(tree_node * node, int value);
+		static tree_node * remove_node(tree_node * node, int value);
+		static int inorder(tree_node * node, tree_node ** array, int pos);
+		static int preorder(tree_node * node, tree_node ** array, int pos);
+		static int postorder(tree_node * node, tree_node ** array, int pos);
+	/**** BASIC OPERATIONS END ****/
 
-	tree_node * add_node(tree_node * node, int value);
+	/**** META DATA FUNCTIONS BEGIN ****/
+		static tree_node * node_from_value(tree_node * node, int value);
+		static int node_exists(tree_node * node);
 
-	int node_height(tree_node * node);
+	/**** META DATA FUNCTIONS END ****/
 
-	void balance_node(tree_node ** node_pointer);
+	/**** BALANCING FUNCTIONS BEGIN ****/
+		static void balance_node(tree_node ** node_pointer);
+		static void rotate(tree_node ** node_pointer);
+		static void rotate_left_left(tree_node ** node_pointer);
+		static void rotate_left_right(tree_node ** node_pointer);
+		static void rotate_right_right(tree_node ** node_pointer);
+		static void rotate_right_left(tree_node ** node_pointer);
+		static int left_leaning(tree_node * node);
+		static int right_leaning(tree_node * node);
+		static int unbalanced(tree_node * node);
+		static int balance_factor(tree_node * node);
+	/**** BALANCING FUNCTIONS END ****/
 
-	void rotate(tree_node ** node_pointer);
 
-	int left_leaning(tree_node * node);
+	/**** PRINT FUNCTIONS BEGIN ****/
+		static void print_n_chars(int n, char c);
+		static void pretty_print_tree_row(int row, tree_node ** tree_array, int start_space, int value_string_size);
+	/**** PRINT FUNCTIONS END ****/
 
-	int right_leaning(tree_node * node);
+	/**** HELPER FUNCTIONS BEGIN ****/
+		static int log_2(int x);
+		static int log_10(int x);
+		static void init_zero_tree_array(avl_tree * root, tree_node ** array);
+		static void fill_array(tree_node * node, tree_node ** array, int pos);
+		static tree_node ** tree_2_array(avl_tree * root);
+		static int node_height(tree_node * node);
+		static unsigned int integer_string_size(int value);
+		static unsigned int max_integer_string_size(int a, int b);
+		static int node_has_no_children(tree_node * node);
+		static int node_has_only_left_child(tree_node * node);
+		static int node_has_only_right_child(tree_node * node);
+		static int node_has_2_children(tree_node * node);
+		static tree_node ** node_array(avl_tree * root);
+	/**** HELPER FUNCTIONS END ****/
 
-	void rotate_left_left(tree_node ** node_pointer);
-	void rotate_left_right(tree_node ** node_pointer);
-	void rotate_right_right(tree_node ** node_pointer);
-	void rotate_right_left(tree_node ** node_pointer);
-
-	tree_node ** tree_2_array(tree * root);
-
-	unsigned int max_integer_string_size(int a, int b);
-	unsigned int integer_string_size(int value);
-
-	tree_node * remove_node(tree_node * node, int value);
-
-	int value_exists(tree * root, int value);
-
-	int node_no_children(tree_node * node);
-	int node_has_only_left_child(tree_node * node);
-	int node_has_only_right_child(tree_node * node);
-	int node_has_2_children(tree_node * node);
-
-	int inorder(tree_node * node, tree_node ** array, int pos);
-
-/**** function prototypes end ****/
+/**** PROTOTYPES END ****/
 
 
 /**** BASIC OPERATIONS BEGIN ****/
 
-	tree * create_tree()
+	avl_tree * create_tree()
 	{
-		tree * new_tree = (tree *) malloc(sizeof(tree));	//Lets belive that the OS is zeroing for us!
-		
-		new_tree->size = 0;
-		new_tree->first_node = NULL_REF;
-		
-		if(new_tree != NULL)
+		avl_tree * new_tree = (avl_tree *) malloc(sizeof(avl_tree));
+
+		if(new_tree != NULL_REF)
 		{
-			return new_tree;
+			new_tree->size = 0;
+			new_tree->first_node = NULL_REF;
 		}
-		else
-		{
-			return 0;
-		}
+		
+		return new_tree;	//Not that this could be NULL if malloc fails.
+		
 	}
 
-	int add_element(tree * root, int value)
+	int add_element(avl_tree * root, int value)
 	{
 		tree_node * new_node = (tree_node *)malloc(sizeof(tree_node));
 		new_node->value = value;
@@ -103,7 +124,7 @@ typedef struct r
 		}
 	}
 
-	tree_node * add_node(tree_node * node, int value)
+	static tree_node * add_node(tree_node * node, int value)
 	{
 		if(!node_exists(node))
 		{
@@ -132,7 +153,7 @@ typedef struct r
 		return node; 
 	}
 
-	int remove_element(tree * root, int value)
+	int remove_element(avl_tree * root, int value)
 	{
 		if(value_exists(root, value))
 		{
@@ -146,7 +167,7 @@ typedef struct r
 		}
 	}
 
-	tree_node * remove_node(tree_node * node, int value)
+	static tree_node * remove_node(tree_node * node, int value)
 	{
 		if(!node_exists(node))
 		{
@@ -175,7 +196,6 @@ typedef struct r
 				return right_tree;
 			}
 
-	
 			if(node_has_2_children(node))
 			{
 				tree_node * upper_node = node;
@@ -185,10 +205,10 @@ typedef struct r
 				if(right_leaning(node))
 				{
 					node = upper_right_child;
-					
+		
 					upper_node->left_child = node->left_child;
 					upper_node->right_child = node->right_child;
-
+					
 					node->left_child = upper_left_child;
 					
 					node->right_child = remove_node(upper_node, value);
@@ -225,22 +245,42 @@ typedef struct r
 		
 	}
 
-	tree_node ** inorder_node_list(tree * root)
+	tree_node ** inorder_node_list(avl_tree * root)
 	{
-		if(!tree_empty(root))
-		{
-			tree_node ** array = malloc(sizeof(tree_node)*tree_size(root));
-
-			inorder(root->first_node, array, 0);
-			return array;
-		}
-		else
-		{
-			return NULL_REF;
-		}
+		tree_node ** array = node_array(root);
+		inorder(root->first_node, array, 0);
+		return array;
+	}
+	
+	tree_node ** preorder_node_list(avl_tree * root)
+	{
+		tree_node ** array = node_array(root);
+		preorder(root->first_node, array, 0);
+		return array;
+	}
+	
+	tree_node ** postorder_node_list(avl_tree * root)
+	{
+		tree_node ** array = node_array(root);
+		postorder(root->first_node, array, 0);
+		return array;
 	}
 
-	int inorder(tree_node * node, tree_node ** array, int pos)
+	static int inorder(tree_node * node, tree_node ** array, int pos)
+	{
+		if(node_exists(node))
+		{
+			pos = inorder(node->left_child, array, pos);
+			array[pos] = node;
+			pos++;
+			pos = inorder(node->right_child, array, pos);
+		}
+		
+		return pos;
+		
+	}
+
+	static int preorder(tree_node * node, tree_node ** array, int pos)
 	{
 		if(node_exists(node))
 		{
@@ -248,27 +288,31 @@ typedef struct r
 			pos++;
 			pos = inorder(node->left_child, array, pos);
 			pos = inorder(node->right_child, array, pos);
-			return pos;
 		}
-		else
-		{
-			return pos;
-		}	
+		
+		return pos;
+			
 	}
 
-	
+	static int postorder(tree_node * node, tree_node ** array, int pos)
+	{
+		if(node_exists(node))
+		{
+			pos = inorder(node->left_child, array, pos);
+			pos = inorder(node->right_child, array, pos);
+			array[pos] = node;
+			pos++;
+		}
+		
+		return pos;
+	}
 
 /**** BASIC OPERATIONS END ***/
 
 
 /**** META DATA FUNCTIONS BEGIN ****/
 
-	int tree_size(tree * root)
-	{
-		return root->size;
-	}
-
-	int tree_empty(tree * root)
+	int tree_empty(avl_tree * root)
 	{
 		if(tree_size(root) > 0)
 		{
@@ -280,31 +324,46 @@ typedef struct r
 		}
 	}
 
-	int complete_tree_size(tree * root)
+	int tree_size(avl_tree * root)
 	{
-		if(tree_empty(root))
+		return root->size;
+	}
+
+	int largest_value_in_tree(avl_tree * root)
+	{
+		if(!tree_empty(root))
 		{
-			return 0;
+			tree_node * node = root->first_node;
+			while(node_exists(node->right_child))
+			{
+				node = node->right_child;
+			}
+			return node->value;
 		}
 		else
 		{
-			return (int)pow(2, tree_height(root)+1)-1;
+			return 0;
 		}
 	}
 
-	int tree_height(tree * root)
+	int smallest_value_in_tree(avl_tree * root)
 	{
-		if(tree_empty(root))
+		if(!tree_empty(root))
 		{
-			return 0;
+			tree_node * node = root->first_node;
+			while(node_exists(node->left_child))
+			{
+				node = node->left_child;
+			}
+			return node->value;
 		}
 		else
 		{
-			return (int)log_2(tree_size(root));
+			return 0;
 		}
 	}
 
-	int tree_is_complete(tree * root)	//Definition: a empty tree is not full.
+	int tree_is_complete(avl_tree * root)	//Definition: a empty tree is not complete.
 	{
 		if(tree_empty(root))
 		{
@@ -316,12 +375,41 @@ typedef struct r
 		}
 	}
 
-	int node_exists(tree_node * node)
+	int value_exists(avl_tree * root, int value)
+	{
+		return node_from_value(root->first_node, value) != NULL_REF;
+	}
+
+	int complete_tree_size(avl_tree * root)
+	{
+		if(tree_empty(root))
+		{
+			return 0;
+		}
+		else
+		{
+			return (int)pow(2, tree_height(root)+1)-1;
+		}
+	}
+
+	int tree_height(avl_tree * root)
+	{
+		if(tree_empty(root))
+		{
+			return 0;
+		}
+		else
+		{
+			return (int)log_2(tree_size(root));
+		}
+	}
+	
+	static int node_exists(tree_node * node)
 	{
 		return node != NULL_REF;
 	}
 
-	tree_node * node_from_value(tree_node * node, int value)
+	static tree_node * node_from_value(tree_node * node, int value)
 	{
 		if(!node_exists(node))
 		{
@@ -344,53 +432,12 @@ typedef struct r
 		}
 	}
 
-	int value_exists(tree * root, int value)
-	{
-		return node_from_value(root->first_node, value) != NULL_REF;
-	}
-
-	int largest_value_in_tree(tree * root)
-	{
-		if(!tree_empty(root))
-		{
-			tree_node * node = root->first_node;
-			while(node_exists(node->right_child))
-			{
-				node = node->right_child;
-			}
-			return node->value;
-		}
-		else
-		{
-			return 0;
-		}
-	}
-
-	int smallest_value_in_tree(tree * root)
-	{
-		if(!tree_empty(root))
-		{
-			tree_node * node = root->first_node;
-			while(node_exists(node->left_child))
-			{
-				node = node->left_child;
-			}
-			return node->value;
-		}
-		else
-		{
-			return 0;
-		}
-	}
-
-
 /**** META DATA FUNCTIONS END ****/
-
 
 
 /**** BALANCING FUNCTIONS BEGIN ****/
 
-	void balance_node(tree_node ** node_pointer)
+	static void balance_node(tree_node ** node_pointer)
 	{
 		tree_node * node = *node_pointer;
 		
@@ -400,7 +447,7 @@ typedef struct r
 		}
 	}
 
-	void rotate(tree_node ** node_pointer)
+	static void rotate(tree_node ** node_pointer)
 	{
 		tree_node * node = *node_pointer;
 
@@ -422,7 +469,7 @@ typedef struct r
 		}
 	}
 
-	void rotate_left_left(tree_node ** node_pointer)
+	static void rotate_left_left(tree_node ** node_pointer)
 	{
 		tree_node * root = *node_pointer;
 		tree_node * pivot = root->left_child;
@@ -432,7 +479,7 @@ typedef struct r
 		pivot->right_child = root;	
 	}
 
-	void rotate_left_right(tree_node ** node_pointer)
+	static void rotate_left_right(tree_node ** node_pointer)
 	{
 		tree_node * node = *node_pointer;
 		tree_node * root = node->left_child;
@@ -443,7 +490,7 @@ typedef struct r
 		pivot->left_child = root;
 	}
 
-	void rotate_right_right(tree_node ** node_pointer)
+	static void rotate_right_right(tree_node ** node_pointer)
 	{
 		tree_node * root = *node_pointer;
 		tree_node * pivot = root->right_child;
@@ -453,7 +500,7 @@ typedef struct r
 		pivot->left_child = root;
 	}
 	
-	void rotate_right_left(tree_node ** node_pointer)
+	static void rotate_right_left(tree_node ** node_pointer)
 	{
 		tree_node * node = *node_pointer;
 		tree_node * root = node->right_child;
@@ -464,29 +511,27 @@ typedef struct r
 		pivot->right_child = root;
 	}
 
-	int left_leaning(tree_node * node)
+	static int left_leaning(tree_node * node)
 	{
 		return balance_factor(node) < 0;
 	}
 
-	int right_leaning(tree_node * node)
+	static int right_leaning(tree_node * node)
 	{
 		return balance_factor(node) > 0;
 	}
 
-	int unbalanced(tree_node * node)
+	static int unbalanced(tree_node * node)
 	{
 		return balance_factor(node) > 1 || balance_factor(node) < -1;
 	}
 
-	int balance_factor(tree_node * node)
+	static int balance_factor(tree_node * node)
 	{
 		return node_height(node->right_child) - node_height(node->left_child);
 	}
 
 /**** BALANCING FUNCTIONS END ****/
-
-
 
 
 /**** PRINT FUNCTIONS BEGIN ****/
@@ -496,7 +541,7 @@ typedef struct r
 		printf("%d", node->value);
 	}
 
-	void array_print(tree * root)
+	void array_print(avl_tree * root)
 	{
 		tree_node ** tree_array = tree_2_array(root);
 
@@ -523,10 +568,8 @@ typedef struct r
 		}
 	}
 
-	void pretty_print_tree(tree * root)	//TODO: make code pretty as well :D
+	void pretty_print_tree(avl_tree * root)
 	{
-		
-
 		if(tree_empty(root))
 		{
 			printf("\nTree empty!\n");
@@ -534,60 +577,19 @@ typedef struct r
 		else
 		{
 			int row = 0;
-			int nodes_in_row, start_node;
-			int j, k;
 			unsigned int value_string_size = max_integer_string_size(largest_value_in_tree(root), smallest_value_in_tree(root));
 			tree_node ** tree_array = tree_2_array(root);
 			
-			int base_width = value_string_size * (2 * (int)pow(2, tree_height(root)) + 1);
-			int node_space;
 			int start_space = (int)pow(2, tree_height(root));
 			
 			printf("\n****** TREE *******\n\n");
 
-			
-			for(row = 0; row < (tree_height(root) + 1); row++)	//Print row is in for loop
+			for(row = 0; row < (tree_height(root) + 1); row++)
 			{
-				nodes_in_row = (int)(pow(2, row));
-				start_node = (int)(pow(2, row) - 1);
-				node_space = 2 * start_space - 1;
-
-		
-				for(k = 0; k < (start_space * value_string_size); k++)
-				{
-					printf(" ");
-				}
-
-				for(j = 0; j < nodes_in_row; j++)
-				{
-			
-					if(node_exists(tree_array[start_node + j]))
-					{					
-						for(k = 0; k < (value_string_size - integer_string_size(tree_array[start_node + j]->value)); k++)
-						{
-							printf(" "); 
-						}
-						print_node_value(tree_array[start_node + j]);
-					}
-					else
-					{
-						for(k = 0; k < value_string_size; k++)	//Null-node is as spacious as node...
-						{
-							printf(" ");
-						}
-					}
-
-					for(k = 0; k < ( node_space * value_string_size ); k++)
-					{
-						printf(" ");
-					}
-				}
-				
+				pretty_print_tree_row(row, tree_array, start_space, value_string_size);
+								
+				print_n_chars((tree_height(root) - row), '\n'); 
 				start_space = start_space / 2;
-				for(k = 0; k < (tree_height(root) - row); k++)
-				{
-					printf("\n");
-				}
 			}
 			
 			printf("\n\n*******************\n");
@@ -595,24 +597,59 @@ typedef struct r
 		}
 	}
 
+	static void print_n_chars(int n, char c)
+	{
+		int i;
+		for(i = 0; i < n; i++)
+		{
+			printf("%c", c);
+		}
+	}
+
+	static void pretty_print_tree_row(int row, tree_node ** tree_array, int start_space, int value_string_size)
+	{
+		int nodes_in_row = (int)(pow(2, row));
+		int start_node = (int)(pow(2, row) - 1);
+		int node_space = 2 * start_space - 1;
+		int j;
+		
+		print_n_chars((start_space * value_string_size), ' ');
+		
+		for(j = 0; j < nodes_in_row; j++)
+		{
+			if(node_exists(tree_array[start_node + j]))
+			{
+				int n = (value_string_size - integer_string_size(tree_array[start_node + j]->value));
+				print_n_chars(n, ' ');
+				
+				print_node_value(tree_array[start_node + j]);
+			}
+			else
+			{
+				print_n_chars(value_string_size, ' ');
+			}
+
+			print_n_chars(( node_space * value_string_size ), ' ');
+		}
+
+	}
+	
 /**** PRINT FUNCTIONS END ****/
-
-
 
 
 /**** HELPER FUNCTIONS BEGIN ****/
 
-	int log_2(int x)
+	static int log_2(int x)
 	{
 		return (int)floor(log(x)/log(2));
 	}
 
-	int log_10(int x)
+	static int log_10(int x)
 	{
 		return (int)floor(log(x)/log(10));
 	}
 
-	void init_zero_tree_array(tree * root, tree_node ** array)
+	static void init_zero_tree_array(avl_tree * root, tree_node ** array)
 	{
 		int i;
 		for(i = 0; i< complete_tree_size(root); i++)
@@ -621,7 +658,7 @@ typedef struct r
 		}
 	}
 
-	void fill_array(tree_node * node, tree_node ** array, int pos)
+	static void fill_array(tree_node * node, tree_node ** array, int pos)
 	{
 		if(node_exists(node))
 		{
@@ -631,7 +668,7 @@ typedef struct r
 		}
 	}
 
-	tree_node ** tree_2_array(tree * root)
+	static tree_node ** tree_2_array(avl_tree * root)
 	{
 		int array_size = complete_tree_size(root);
 		
@@ -648,7 +685,7 @@ typedef struct r
 		}
 	}
 	
-	int node_height(tree_node * node)
+	static int node_height(tree_node * node)
 	{
 		if(node == NULL_REF)
 		{
@@ -667,7 +704,7 @@ typedef struct r
 		}
 	}
 
-	unsigned int integer_string_size(int value)
+	static unsigned int integer_string_size(int value)
 	{
 		if(value == 0)
 		{
@@ -677,13 +714,13 @@ typedef struct r
 		{
 			if(value < 0)
 			{
-				value *= -1;
+				value *= -10; //Gives one more 'space'.
 			}
 			return (unsigned int)floor(log_10(value)) + 1;
 		}
 	}
 
-	unsigned int max_integer_string_size(int a, int b)
+	static unsigned int max_integer_string_size(int a, int b)
 	{
 		if(integer_string_size(a) > integer_string_size(b))
 		{
@@ -695,27 +732,35 @@ typedef struct r
 		}
 	}
 	
-	int node_has_no_children(tree_node * node)
+	static int node_has_no_children(tree_node * node)
 	{
 		return !node_exists(node->left_child) && !node_exists(node->right_child);
 	}
 
-	int node_has_only_left_child(tree_node * node)
+	static int node_has_only_left_child(tree_node * node)
 	{
 		return node_exists(node->left_child) && !node_exists(node->right_child);
 	}
 	
-	int node_has_only_right_child(tree_node * node)
+	static int node_has_only_right_child(tree_node * node)
 	{
 		return !node_exists(node->left_child) && node_exists(node->right_child);
 	}
 
-	int node_has_2_children(tree_node * node)
+	static int node_has_2_children(tree_node * node)
 	{
 		return node_exists(node->left_child) && node_exists(node->right_child);
 	}
 
+	static tree_node ** node_array(avl_tree * root)
+	{
+		if(!tree_empty(root))
+		{
+			return (tree_node **)malloc(sizeof(tree_node) * tree_size(root));
+		}
+		
+		return NULL_REF;
+	} 
+
 /**** HELPER FUNCTIONS END ****/
-
-
 
