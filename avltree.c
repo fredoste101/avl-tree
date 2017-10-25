@@ -1,13 +1,3 @@
-/*
-	The idea is a binary search tree data structure with an easy to use API
-	Will be an int since it is compare problems otherwise..!!
-
-	ADD HEIGHT IN EACH NODE?
-	IS LEAF?
-	BULK OPERATIONS - That is: add tree to tree and so on... split and joint but that is future
-	THERE ARE MORE WAYS TO DELETE THAN CURRENTLY IMPLEMENTED!
-*/
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
